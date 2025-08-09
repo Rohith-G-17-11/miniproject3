@@ -1,10 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "Browser Security Analyser",
+  "name": "Browser Privacy Analyzer",
   "version": "1.0",
-  "description": "Scans open tabs and checks their security.",
-  "permissions": ["tabs", "activeTab"],
+  "permissions": ["storage", "tabs", "scripting"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
   }
 }
