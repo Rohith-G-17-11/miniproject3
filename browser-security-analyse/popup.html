@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Browser Security Analyser</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Security Analyser</h1>
+    <p class="subtitle">Open tabs on this browser</p>
+  </header>
+
+  <main>
+    <ul id="tabList" class="tab-list">
+      <!-- Tabs will be injected here -->
+    </ul>
+
+    <div id="empty" class="empty">No tabs found.</div>
+  </main>
+
+  <footer>
+    <small>Day 1 — tab scanner</small>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Browser Security Analyser",
+  "version": "1.0",
+  "description": "Scans open tabs and checks their security.",
+  "permissions": ["tabs", "activeTab"],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
