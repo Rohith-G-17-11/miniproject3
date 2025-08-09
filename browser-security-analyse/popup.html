@@ -9,19 +9,16 @@
 <body>
   <header>
     <h1>Security Analyser</h1>
-    <p class="subtitle">Open tabs on this browser</p>
+    <button id="refresh" title="Refresh list">Refresh</button>
   </header>
 
   <main>
-    <ul id="tabList" class="tab-list">
-      <!-- Tabs will be injected here -->
-    </ul>
-
+    <ul id="tabList" class="tab-list"></ul>
     <div id="empty" class="empty">No tabs found.</div>
   </main>
 
   <footer>
-    <small>Day 1 — tab scanner</small>
+    <small>Shows tab status: secure / insecure / flagged</small>
   </footer>
 
   <script src="popup.js"></script>
