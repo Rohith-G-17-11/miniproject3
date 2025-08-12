@@ -1,24 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Browser Security Analyser</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Privacy & Security Analyzer</title>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
   <header>
-    <h1>Security Analyser</h1>
-    <button id="refresh" title="Refresh list">Refresh</button>
+    <h1>Privacy & Security Analyzer</h1>
+    <button id="refresh">Refresh</button>
   </header>
 
   <main>
+    <div id="summary"></div>
     <ul id="tabList" class="tab-list"></ul>
     <div id="empty" class="empty">No tabs found.</div>
   </main>
 
   <footer>
-    <small>Shows tab status: secure / insecure / flagged</small>
+    <small>Scans: TLS/HTTPS (basic), mixed-content, cookies, headers (if accessible), trackers, XSS hints, CSRF tokens, WebRTC IPs.</small>
   </footer>
 
   <script src="popup.js"></script>

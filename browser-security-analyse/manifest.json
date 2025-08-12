@@ -1,15 +1,26 @@
 {
   "manifest_version": 3,
-  "name": "Browser Privacy Analyzer",
-  "version": "1.0",
-  "permissions": ["storage", "tabs", "scripting"],
+  "name": "Browser Privacy & Security Analyzer",
+  "version": "1.2",
+  "description": "Analyzes tabs for encryption, headers, cookies, trackers, XSS/CSRF indicators, WebRTC leaks and gives a per-tab score.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "cookies",
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "js": ["content.js"],
+      "run_at": "document_end"
     }
   ],
   "action": {

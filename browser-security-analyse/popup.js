@@ -1,121 +1,158 @@
 // popup.js
-// Simple security checks: HTTPS vs HTTP, and flagged domain list.
-
 const flaggedDomains = [
   "example-bad.com",
   "suspicious-site.test",
   "tracker.example"
-  // add more test domains or replace with your list
 ];
 
 function getDomain(url) {
   try {
-    const u = new URL(url);
-    return u.hostname.replace(/^www\./i, "").toLowerCase();
-  } catch (e) {
-    return null;
-  }
+    return (new URL(url)).hostname.replace(/^www\./,'').toLowerCase();
+  } catch (e) { return null; }
 }
 
-function classifyTab(tab) {
-  const url = tab.url || "";
-  const domain = getDomain(url);
-  const isSecure = url.startsWith("https:");
-  const isFlagged = domain ? flaggedDomains.includes(domain) : false;
-
-  let status = "secure";
-  if (!url || url.startsWith("chrome:") || url.startsWith("about:")) {
-    status = "unknown";
-  } else if (!isSecure) {
-    status = "insecure";
-  }
-  if (isFlagged) status = "flagged";
-
-  return {
-    id: tab.id,
-    title: tab.title || domain || "(no title)",
-    url,
-    favicon: tab.favIconUrl || "",
-    domain,
-    status
-  };
+function createBadge(score) {
+  const span = document.createElement('span');
+  span.className = 'scoreBadge';
+  span.textContent = `${score}/100`;
+  if (score >= 80) span.classList.add('high');
+  else if (score >= 50) span.classList.add('medium');
+  else span.classList.add('low');
+  return span;
 }
 
-function renderTabs(tabsData) {
-  const list = document.getElementById("tabList");
-  const empty = document.getElementById("empty");
-  list.innerHTML = "";
+function createSmall(text, cls) {
+  const s = document.createElement('div');
+  s.className = cls || 'small';
+  s.textContent = text;
+  return s;
+}
 
-  if (!tabsData || tabsData.length === 0) {
-    empty.style.display = "block";
-    return;
+function renderTabItem(tab, storedReport) {
+  const li = document.createElement('li');
+  li.className = 'tab-item';
+
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+
+  const title = document.createElement('div');
+  title.className = 'title';
+  title.textContent = tab.title || tab.url;
+
+  const url = document.createElement('div');
+  url.className = 'url';
+  url.textContent = tab.url;
+
+  meta.appendChild(title);
+  meta.appendChild(url);
+
+  const right = document.createElement('div');
+  right.className = 'right';
+
+  // Score or spinner
+  if (storedReport && storedReport.score !== undefined) {
+    right.appendChild(createBadge(storedReport.score));
+  } else {
+    const p = document.createElement('div');
+    p.className = 'small';
+    p.textContent = 'scanning...';
+    right.appendChild(p);
   }
-  empty.style.display = "none";
 
-  tabsData.forEach(t => {
-    const li = document.createElement("li");
-    li.className = "tab-item";
+  // basic status icons
+  const domain = getDomain(tab.url);
+  const status = document.createElement('div');
+  status.className = 'status';
+  if (!tab.url.startsWith('https:')) {
+    status.textContent = '⚠ Insecure';
+  } else if (flaggedDomains.includes(domain)) {
+    status.textContent = '🚨 Flagged';
+  } else {
+    status.textContent = '✅ Secure';
+  }
 
-    const img = document.createElement("img");
-    img.className = "favicon";
-    img.src = t.favicon || "data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28'></svg>";
-    img.alt = "";
+  li.appendChild(meta);
+  li.appendChild(right);
+  li.appendChild(status);
 
-    const meta = document.createElement("div");
-    meta.className = "meta";
+  // if report is present, add details
+  if (storedReport) {
+    const details = document.createElement('div');
+    details.className = 'details';
 
-    const title = document.createElement("span");
-    title.className = "title";
-    title.textContent = t.title;
-
-    const url = document.createElement("span");
-    url.className = "url";
-    url.textContent = t.url;
-
-    meta.appendChild(title);
-    meta.appendChild(url);
-
-    const badge = document.createElement("div");
-    badge.className = "badge";
-
-    if (t.status === "secure") {
-      badge.classList.add("secure");
-      badge.textContent = "✅ Secure";
-    } else if (t.status === "insecure") {
-      badge.classList.add("insecure");
-      badge.textContent = "⚠ Insecure";
-    } else if (t.status === "flagged") {
-      badge.classList.add("flagged");
-      badge.textContent = "🚨 Flagged";
+    const r = storedReport.report;
+    // summary items
+    details.appendChild(createSmall(`Mixed resources: ${r.mixedResources.length}`, 'muted'));
+    details.appendChild(createSmall(`Insecure forms: ${r.insecureForms.length}`, 'muted'));
+    details.appendChild(createSmall(`Trackers found: ${r.trackersFound.length}`, 'muted'));
+    details.appendChild(createSmall(`CSRF tokens found: ${r.csrfTokens.length}`, 'muted'));
+    if (r.webrtcIps && r.webrtcIps.length) {
+      details.appendChild(createSmall(`WebRTC IPs: ${r.webrtcIps.join(', ')}`, 'warn'));
+    }
+    // cookie info
+    details.appendChild(createSmall(`Cookies: ${storedReport.cookieCount}, insecure: ${storedReport.insecureCookieCount}`, 'muted'));
+    // header info - best-effort
+    if (storedReport.headerInfo && storedReport.headerInfo.ok && storedReport.headerInfo.headers) {
+      const hdr = storedReport.headerInfo.headers;
+      details.appendChild(createSmall(`CSP: ${hdr['content-security-policy'] ? 'yes' : 'no'}`, hdr['content-security-policy'] ? 'ok' : 'warn'));
+      details.appendChild(createSmall(`HSTS: ${hdr['strict-transport-security'] ? 'yes' : 'no'}`, hdr['strict-transport-security'] ? 'ok' : 'warn'));
+      details.appendChild(createSmall(`X-Frame-Options: ${hdr['x-frame-options'] || hdr['frame-ancestors'] ? 'yes' : 'no'}`, (hdr['x-frame-options'] || hdr['frame-ancestors']) ? 'ok' : 'warn'));
     } else {
-      badge.textContent = "—";
+      details.appendChild(createSmall('Headers: unknown (CORS may block)', 'muted'));
     }
 
-    li.appendChild(img);
-    li.appendChild(meta);
-    li.appendChild(badge);
-    list.appendChild(li);
-  });
+    li.appendChild(details);
+  }
+
+  return li;
 }
 
-function listTabs() {
-  // request all tabs (all windows)
+function requestReportForTab(tab) {
+  // We rely on content script to send PAGE_REPORT on page load.
+  // But we can proactively send a message to the content script to re-scan if needed.
+  try {
+    chrome.tabs.sendMessage(tab.id, { type: 'TRIGGER_SCAN' }, (resp) => {
+      // ignore; content script will send PAGE_REPORT when ready
+    });
+  } catch (e) {
+    // Could be cross-extension page or not injectable
+  }
+}
+
+function load() {
+  const list = document.getElementById('tabList');
+  const empty = document.getElementById('empty');
+  list.innerHTML = '';
+
   chrome.tabs.query({}, (tabs) => {
-    if (chrome.runtime.lastError) {
-      console.error("tabs.query error:", chrome.runtime.lastError);
-      document.getElementById("empty").textContent = "Error fetching tabs.";
+    if (!tabs || tabs.length === 0) {
+      empty.style.display = 'block';
       return;
     }
+    empty.style.display = 'none';
 
-    const filtered = tabs
-      .filter(tab => tab.url && !tab.url.startsWith("chrome://") && !tab.url.startsWith("about:"))
-      .map(classifyTab);
-
-    renderTabs(filtered);
+    // For each tab, try to read stored report (tab-keyed)
+    tabs.forEach(tab => {
+      const key = `report_tab_${tab.id}`;
+      chrome.storage.local.get([key], (res) => {
+        const stored = res[key];
+        list.appendChild(renderTabItem(tab, stored));
+        // If no stored result, trigger content script re-scan
+        if (!stored) requestReportForTab(tab);
+      });
+    });
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("refresh").addEventListener("click", listTabs);
-  listTabs();
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('refresh').addEventListener('click', load);
+  load();
+});
+
+// Update UI when background stores a report
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === 'REPORT_STORED') {
+    // refresh popup list to display latest values
+    load();
+  }
 });
